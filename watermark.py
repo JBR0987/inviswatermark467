@@ -23,7 +23,7 @@ def _arnold_step(grid: np.ndarray):
     return out
 
 
-def _arnold_period(n: int) -> int:
+def _arnold_period(n: int):
     """Finds the cycle length of the Arnold Cat Map for an n x n grid."""
 
     # Track unique values so returning to the probe marks a full cycle
@@ -249,36 +249,45 @@ def jpeg_sample_test(img_bgr, quality=70):
 
 
 if __name__ == "__main__":
-    
-    # Load the test image
-    image_path = Path(__file__).with_name("testimg.png")
-    cover = cv2.imread(str(image_path), cv2.IMREAD_COLOR)
-    if cover is None:
-        raise FileNotFoundError(f"Could not read cover image: {image_path}")
 
     # Create a simple 32x32 watermark pattern.
     wm = np.zeros((32, 32), dtype=np.uint8)
     wm[4:28, 4:28] = 1
     wm[10:22, 10:22] = 0
-    
-    wm_img, info = embed_watermark(cover, wm, seed=42, alpha=10.0, wavelet="haar", iters=5)
 
-    print(f"PSNR: {compute_psnr(cover, wm_img):.2f} dB")
-    print(f"SSIM: {compute_ssim(cover, wm_img):.4f}")
+    # Run tests on two sample images from COCO dataset
+    for image_name in ("dogtest.png", "wrtest.png"):
+        image_path = Path(__file__).with_name(image_name)
+        cover = cv2.imread(str(image_path), cv2.IMREAD_COLOR)
+        if cover is None:
+            raise FileNotFoundError(f"Could not read cover image: {image_path}")
 
-    clean_ext = extract_watermark(wm_img, info)
-    clean_ber = float(np.mean(info["wm_ref"] != clean_ext))
-    print(
-        f"Clean Extraction -> NC: "
-        f"{nc_score(info['wm_ref'], clean_ext):.4f}, "
-        f"BER: {clean_ber:.4f}"
-    )
+        wm_img, info = embed_watermark(
+            cover,
+            wm,
+            seed=42,
+            alpha=10.0,
+            wavelet="haar",
+            iters=5,
+        )
 
-    jpg_img = jpeg_sample_test(wm_img, quality=70)
-    jpg_ext = extract_watermark(jpg_img, info)
-    jpg_ber = float(np.mean(info["wm_ref"] != jpg_ext))
-    print(
-        f"JPEG Q=70 Sample Test -> NC: "
-        f"{nc_score(info['wm_ref'], jpg_ext):.4f}, "
-        f"BER: {jpg_ber:.4f}"
-    )
+        print(f"\nTest image: {image_name}")
+        print(f"PSNR: {compute_psnr(cover, wm_img):.2f} dB")
+        print(f"SSIM: {compute_ssim(cover, wm_img):.4f}")
+
+        clean_ext = extract_watermark(wm_img, info)
+        clean_ber = float(np.mean(info["wm_ref"] != clean_ext))
+        print(
+            f"Clean Extraction -> NC: "
+            f"{nc_score(info['wm_ref'], clean_ext):.4f}, "
+            f"BER: {clean_ber:.4f}"
+        )
+
+        jpg_img = jpeg_sample_test(wm_img, quality=70)
+        jpg_ext = extract_watermark(jpg_img, info)
+        jpg_ber = float(np.mean(info["wm_ref"] != jpg_ext))
+        print(
+            f"JPEG Q=70 Sample Test -> NC: "
+            f"{nc_score(info['wm_ref'], jpg_ext):.4f}, "
+            f"BER: {jpg_ber:.4f}"
+        )
